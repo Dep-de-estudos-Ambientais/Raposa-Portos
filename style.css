@@ -1,0 +1,299 @@
+/* =========================================
+   APP 100% TELA (SEM ROLAGEM)
+========================================= */
+* { box-sizing: border-box; }
+
+html, body { height: 100%; margin: 0; }
+
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+
+/* body vira "app" (header + main + footer) */
+.app{
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* remove barra de rolagem */
+}
+
+/* =========================================
+   HEADER
+========================================= */
+.topbar{
+  flex: 0 0 56px;
+  height: 56px;
+  display:flex;
+  align-items:center;
+  justify-content:center; /* título central */
+  padding:0 16px;
+  border-bottom: 5px solid #0c9cf0;
+  background:#0d033b;
+}
+
+.brand{
+  display:flex;
+  gap:50px;
+  align-items:baseline;
+  color:#ffffff;
+  text-align:center;
+  flex-wrap: wrap;
+  justify-content:center;
+}
+
+.muted { color:#ffffff; font-size: 14px; }
+
+/* =========================================
+   MAIN + MAPA
+========================================= */
+/* Main ocupa todo o espaço restante */
+.main{
+  flex: 1 1 auto;
+  min-height: 0; /* MUITO importante para Leaflet não estourar */
+}
+
+/* Mapa preenche o main */
+#map{
+  height: 100%;
+  width: 100%;
+}
+
+/* =========================================
+   FOOTER (RODAPÉ)
+========================================= */
+.footer{
+  flex: 0 0 84px;
+  height: 84px;
+  border-top: 1px solid #e6e6e6;
+  background:#fff;
+  display:flex;
+  flex-direction: column;
+  justify-content:center;
+  align-items:center;
+  gap: 4px;
+  padding: 10px 16px;
+  text-align:center;
+  font-size: 12px;
+  color:#333;
+}
+
+/* (Opcional) Rodapé com logo à direita:
+   use no HTML: <div class="footer-inner"><div class="footer-text">...</div><img class="footer-logo"...></div>
+*/
+.footer-inner{
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 80px;
+}
+
+.footer-text{
+  text-align: center;
+}
+
+/* Logo 02 no rodapé (discreta) */
+.footer-logo{
+  height: 80px;      /* pequeno e discreto */
+  width: auto;
+  max-width: 300px;  /* evita ficar gigante */
+  object-fit: contain;
+  opacity: .85;
+  display:block;
+}
+
+.footer-logo:hover{
+  opacity: 1;
+}
+
+/* =========================================
+   LOGO 01 NO MAPA (BOTÃO CIRCULAR)
+========================================= */
+.map-logo-btn{
+  margin: 8px;
+}
+
+.logo-btn{
+  width: 80px;
+  height: px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(8, 3, 51, 0.92);
+  box-shadow: 0 2px 8px rgba(0,0,0,.10);
+  padding: 6px;
+  cursor: pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  /* discreto */
+  opacity: .85;
+  transition: transform .12s ease, opacity .12s ease;
+}
+
+.logo-btn:hover{
+  opacity: 1;
+  transform: scale(1.03);
+}
+
+.logo-btn img{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 999px;
+  display:block;
+}
+
+/* =========================================
+   LABELS (TOOLTIPS) DOS PORTOS
+========================================= */
+.leaflet-tooltip.port-label{
+  background: rgba(255,255,255,.95);
+  border: 1px solid #e6e6e6;
+  border-radius: 10px;
+  padding: 4px 8px;
+  color:#111;
+  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+}
+
+/* Ícone barquinho */
+.boat-icon{
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.25));
+}
+
+/* =========================================
+   BALÃO "COMO USAR" (NA LEGENDA)
+========================================= */
+.help{ position: relative; }
+
+.help-btn{
+  width: 20px;
+  height: 20px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #ddd;
+  border-radius:999px;
+  font-weight:700;
+  font-size:12px;
+  color:#333;
+  background:#fff;
+  cursor: default;
+}
+
+.help-balloon{
+  display:none;
+  position:absolute;
+  right:0;
+  bottom: 28px;
+  width: 240px;
+  padding: 10px 12px;
+  border:1px solid #e6e6e6;
+  border-radius:12px;
+  background: rgba(255,255,255,.98);
+  box-shadow: 0 2px 10px rgba(0,0,0,.12);
+  font-size: 12px;
+  color:#333;
+}
+
+.help:hover .help-balloon{ display:block; }
+
+/* Pequeno ajuste: evitar legenda "colada" no canto inferior */
+.leaflet-bottom.leaflet-right { margin-bottom: 6px; }
+
+/* =========================================
+   POPUP (ATRIBUTOS + GALERIA)
+========================================= */
+.popup-wrap{ max-width: 420px; }
+
+.attr-table{ width:100%; border-collapse: collapse; font-size: 12px; }
+.attr-table td{ border-top: 1px solid #eee; padding: 6px 6px; vertical-align: top; }
+.attr-table td.key{ color:#666; width: 35%; }
+
+.gallery{ margin-top: 10px; }
+
+.gallery .main{
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  background:#fafafa;
+}
+
+.thumbs{
+  display:flex;
+  gap:8px;
+  margin-top:8px;
+  overflow:auto;
+  padding-bottom:4px;
+}
+
+.thumbs img{
+  width:64px;
+  height:48px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #eee;
+  cursor:pointer;
+  opacity: .9;
+}
+
+.thumbs img:hover{ opacity: 1; }
+
+/* =========================================
+   LIGHTBOX (AMPLIAR FOTO/VÍDEO)
+========================================= */
+.lightbox.hidden{ display:none; }
+
+.lightbox{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+.lightbox-backdrop{
+  position:absolute;
+  inset:0;
+  background: rgba(0,0,0,.55);
+}
+
+.lightbox-content{
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(980px, 92vw);
+  height: min(720px, 86vh);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  overflow: hidden;
+}
+
+.lightbox-close{
+  position:absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  border: 1px solid #e6e6e6;
+  background: rgba(255,255,255,.95);
+  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+}
+
+#lightbox-body{
+  width: 100%;
+  height: 100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 18px;
+}
+
+#lightbox-body img,
+#lightbox-body video{
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 12px;
+}
