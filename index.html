@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mapa de localização dos portos visitados no municípios de Raposa – MA </title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Proj4 (pra corrigir UTM se necessário) -->
+  <script src="https://unpkg.com/proj4@2.11.0/dist/proj4.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<div id="lightbox" class="lightbox hidden" aria-hidden="true">
+  <div class="lightbox-backdrop" data-close="1"></div>
+
+  <div class="lightbox-content" role="dialog" aria-modal="true">
+    <button class="lightbox-close" type="button" title="Fechar" data-close="1">✕</button>
+    <div id="lightbox-body"></div>
+  </div>
+</div>
+
+<body class="app">
+  <header class="topbar">
+    <div class="brand">
+      <strong>Mapa de localização dos portos visitados no município de Raposa – MA</strong>
+      <span class="muted">Portos • Fotos • Atributos</span>
+    </div>
+  </header>
+
+  <main class="main">
+    <section id="map"></section>
+  </main>
+
+  <footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-text">
+     <div><strong>Desenvolvimento:</strong> Departamento de Estudos Ambientais e Geotecnologias • IMESC </div>
+      <div><strong>Versão:</strong> v0.1 • <strong>Base:</strong> OSM / Esri • <strong>Projeção:</strong> WGS84</div>
+      <div><strong>Observações:</strong> A informação de “Capacidade do barco (kg)”, é resultante da estimativa calculada a partir da soma das capacidades dos barcos, dividido pela da soma total do número de embarcações. </div>
+    </div>
+
+    <img class="footer-logo" src="./logos/logo2.png" alt="Logo 02">
+  </div>
+</footer>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
