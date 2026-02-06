@@ -1,8 +1,12 @@
 const URLS = {
   portos: './assets/Portos.geojson',
-  raposa: './assets/Raposa.geojson'
+  raposa: './assets/Raposa.geojson',
+  mediaIndex: './assets/media-index.json'
 };
 
+// ======================
+// 0) LIGHTBOX (AMPLIAR)
+// ======================
 const lb = document.getElementById('lightbox');
 const lbBody = document.getElementById('lightbox-body');
 
@@ -29,6 +33,9 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && lb && !lb.classList.contains('hidden')) closeLightbox();
 });
 
+// ======================
+// 1) FILTRO DE COLUNAS
+// ======================
 const HIDE_KEYS = new Set([
   'ele',
   'porto da raposa',
@@ -65,6 +72,9 @@ function propsToTable(props) {
   `;
 }
 
+// ======================
+// 2) MAPA + BASEMAPS
+// ======================
 const map = L.map('map', { zoomControl: true }).setView([-2.425, -44.10], 12);
 
 const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -83,6 +93,9 @@ L.control.layers(
   { collapsed: false }
 ).addTo(map);
 
+// ======================
+// 3) LEGENDA + AJUDA
+// ======================
 const legend = L.control({ position: 'bottomright' });
 legend.onAdd = function () {
   const div = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
@@ -121,6 +134,9 @@ legend.onAdd = function () {
 };
 legend.addTo(map);
 
+// ======================
+// 4) LOGO
+// ======================
 const logoControl = L.control({ position: 'bottomleft' });
 logoControl.onAdd = function () {
   const div = L.DomUtil.create('div', 'map-logo-btn');
@@ -141,6 +157,9 @@ logoControl.onAdd = function () {
 };
 logoControl.addTo(map);
 
+// ======================
+// 5) ÍCONE BARQUINHO
+// ======================
 const boatIcon = L.divIcon({
   className: 'boat-icon',
   html: `<span style="font-size:22px; line-height:22px;">⛵</span>`,
@@ -152,6 +171,9 @@ const boatIcon = L.divIcon({
 
 const styleBoatShadow = true;
 
+// ======================
+// 6) CORREÇÃO COORDS (UTM->WGS84)
+// ======================
 function firstPointCoord(geo) {
   const f = geo?.features?.find(ft => ft?.geometry?.type === 'Point' && Array.isArray(ft.geometry.coordinates));
   return f?.geometry?.coordinates ?? null;
@@ -216,89 +238,43 @@ function normalizeAndFixPortos(raw) {
   return { geo, mode: 'fallback-cut-z-only' };
 }
 
-const IMG_EXTS = ['JPG','JPEG','PNG','WEBP','jpg','jpeg','png','webp'];
-const VID_EXTS = ['MP4','WEBM','mp4','webm'];
+// ======================
+// 7) MEDIA INDEX (SEM CHUTE / SEM 404)
+// ======================
+let MEDIA_INDEX = null;
+
+async function loadMediaIndex() {
+  if (MEDIA_INDEX) return MEDIA_INDEX;
+  const r = await fetch(URLS.mediaIndex, { cache: 'no-store' });
+  if (!r.ok) throw new Error(`HTTP ${r.status} em ${URLS.mediaIndex}`);
+  MEDIA_INDEX = await r.json();
+  return MEDIA_INDEX;
+}
 
 function buildMediaUrl(dir, filename) {
   return `fotos/${encodeURIComponent(dir)}/${encodeURIComponent(filename)}`;
 }
 
-async function urlExists(url) {
-  try {
-    const res = await fetch(url, { method: 'GET', cache: 'no-store' });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-function imageExists(url) { return urlExists(url); }
-function videoExists(url) { return urlExists(url); }
-
-function normalizeDirName(s){
+function normalizeDirName(s) {
   return String(s ?? '').trim();
 }
 
-async function resolveMediaDirByName(nome, maxPrefix = 80){
-  const base = normalizeDirName(nome);
-  const candidates = [base];
+async function getMediaForDir(dirName) {
+  const idx = await loadMediaIndex();
+  const key = normalizeDirName(dirName);
 
-  for (let i = 1; i <= maxPrefix; i++){
-    candidates.push(`${i}. ${base}`);
-  }
+  const entry = idx?.[key] || idx?.[key.toLowerCase()] || null;
+  if (!entry) return { photos: [], videos: [], dirUsed: key, found: false };
 
-  for (const dir of candidates){
-    for (const ext of IMG_EXTS){
-      const url = buildMediaUrl(dir, `Foto (1).${ext}`);
-      // eslint-disable-next-line no-await-in-loop
-      if (await imageExists(url)) return dir;
-    }
-  }
+  const photos = (entry.fotos || []).map(fn => buildMediaUrl(key, fn));
+  const videos = (entry.videos || []).map(fn => buildMediaUrl(key, fn));
 
-  return base;
+  return { photos, videos, dirUsed: key, found: true };
 }
 
-async function findMediaForDir(dir, maxPhotos = 80, maxVideos = 10) {
-  const photos = [];
-  const videos = [];
-
-  let missStreak = 0;
-  const MAX_MISS_STREAK = 6;
-
-  for (let i = 1; i <= maxPhotos; i++) {
-    let foundThisIndex = false;
-
-    for (const ext of IMG_EXTS) {
-      const filename = `Foto (${i}).${ext}`;
-      const url = buildMediaUrl(dir, filename);
-      // eslint-disable-next-line no-await-in-loop
-      if (await imageExists(url)) {
-        photos.push(url);
-        foundThisIndex = true;
-        break;
-      }
-    }
-
-    if (foundThisIndex) {
-      missStreak = 0;
-    } else {
-      missStreak++;
-      if (photos.length > 0 && missStreak >= MAX_MISS_STREAK) break;
-    }
-  }
-
-  for (let i = 1; i <= maxVideos; i++) {
-    for (const ext of VID_EXTS) {
-      const filename = `Video (${i}).${ext}`;
-      const url = buildMediaUrl(dir, filename);
-      // eslint-disable-next-line no-await-in-loop
-      if (await videoExists(url)) { videos.push(url); break; }
-    }
-  }
-
-  return { photos, videos };
-}
-
+// ======================
+// 8) GALERIA
+// ======================
 function galleryHtml({ photos, videos }) {
   const parts = [];
 
@@ -368,6 +344,9 @@ function wireGalleryInteractions(popupEl) {
   });
 }
 
+// ======================
+// 9) CARREGAR RAPOSA
+// ======================
 fetch(URLS.raposa)
   .then(r => r.ok ? r.json() : null)
   .then(geo => {
@@ -379,16 +358,16 @@ fetch(URLS.raposa)
   })
   .catch(() => {});
 
+// ======================
+// 10) CARREGAR PORTOS
+// ======================
 fetch(URLS.portos)
   .then(r => {
     if (!r.ok) throw new Error(`HTTP ${r.status} em ${URLS.portos}`);
     return r.json();
   })
   .then(raw => {
-    console.log('✅ Portos carregados. features =', raw?.features?.length ?? 0);
-
-    const { geo, mode } = normalizeAndFixPortos(raw);
-    console.log('🛠️ modo de correção =', mode);
+    const { geo } = normalizeAndFixPortos(raw);
 
     L.geoJSON(geo, {
       pointToLayer: (_feature, latlng) => L.marker(latlng, { icon: boatIcon }),
@@ -421,22 +400,35 @@ fetch(URLS.portos)
             </div>
           `);
 
-          const baseDir = props.midia_dir || nome;
-          const realDir = await resolveMediaDirByName(baseDir, 80);
-          const media = await findMediaForDir(realDir, 80, 10);
+          try {
+            const baseDir = props.midia_dir || nome; // sem mexer no geojson
+            const media = await getMediaForDir(baseDir);
 
-          layer.setPopupContent(`
-            <div class="popup-wrap">
-              <h3 style="margin:0 0 6px;font-size:14px;">${esc(nome)}</h3>
-              ${propsToTable(props)}
-              ${galleryHtml(media)}
-            </div>
-          `);
+            layer.setPopupContent(`
+              <div class="popup-wrap">
+                <h3 style="margin:0 0 6px;font-size:14px;">${esc(nome)}</h3>
+                ${propsToTable(props)}
+                ${galleryHtml(media)}
+                ${media.found ? '' : `<div class="hint" style="margin-top:10px;">Pasta não encontrada no media-index.json: <b>${esc(media.dirUsed)}</b></div>`}
+              </div>
+            `);
 
-          setTimeout(() => {
-            const el = layer.getPopup()?.getElement();
-            if (el) wireGalleryInteractions(el);
-          }, 0);
+            setTimeout(() => {
+              const el = layer.getPopup()?.getElement();
+              if (el) wireGalleryInteractions(el);
+            }, 0);
+          } catch (err) {
+            console.error('❌ Erro ao carregar media-index:', err);
+            layer.setPopupContent(`
+              <div class="popup-wrap">
+                <h3 style="margin:0 0 6px;font-size:14px;">${esc(nome)}</h3>
+                ${propsToTable(props)}
+                <div class="hint" style="margin-top:10px;">
+                  Erro ao carregar <b>media-index.json</b>. Veja o Console (F12).
+                </div>
+              </div>
+            `);
+          }
         });
       }
     }).addTo(map);
