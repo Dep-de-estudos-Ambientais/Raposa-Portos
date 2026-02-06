@@ -1,15 +1,3 @@
-/*************************************************
- * Mapa da Pesca — Raposa (Leaflet)
- * - Base maps: OSM + Satélite (ESRI)
- * - Legenda (com balão "Como usar") + símbolo do limite territorial
- * - Logo 1: botão circular no canto inferior esquerdo do mapa
- * - Logo 2: fica no rodapé (no index.html / CSS)
- * - Portos: ícone barquinho
- * - Popup: filtra colunas + galeria (Foto (n) + Video (n))
- * - Ampliar fotos e vídeos: Lightbox (modal)
- * - Correção coords: corta Z / invertido / UTM 23S (SIRGAS2000) -> WGS84
- * - BUGFIX: popup reabre sempre (carrega mídia no evento popupopen)
- *************************************************/
 
 const URLS = {
   portos: './assets/Portos.geojson',
