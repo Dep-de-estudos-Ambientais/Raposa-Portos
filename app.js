@@ -247,8 +247,8 @@ function normalizeAndFixPortos(raw) {
 // ======================
 // 7) GALERIA MÍDIA
 // ======================
-const IMG_EXTS = ['JPG','jpg','JPEG','jpeg','PNG','png','WEBP','webp'];
-const VID_EXTS = ['MP4','mp4','WEBM','webm'];
+const IMG_EXTS = ['JPG','jpg'];
+const VID_EXTS = ['MP4','mp4'];
 
 function buildMediaUrl(dir, filename) {
   return `fotos/${encodeURIComponent(dir)}/${encodeURIComponent(filename)}`;
