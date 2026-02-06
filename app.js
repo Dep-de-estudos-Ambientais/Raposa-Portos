@@ -1,12 +1,8 @@
-
 const URLS = {
   portos: './assets/Portos.geojson',
   raposa: './assets/Raposa.geojson'
 };
 
-// ======================
-// 0) LIGHTBOX (AMPLIAR)
-// ======================
 const lb = document.getElementById('lightbox');
 const lbBody = document.getElementById('lightbox-body');
 
@@ -33,9 +29,6 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && lb && !lb.classList.contains('hidden')) closeLightbox();
 });
 
-// ======================
-// 1) FILTRO DE COLUNAS
-// ======================
 const HIDE_KEYS = new Set([
   'ele',
   'porto da raposa',
@@ -72,18 +65,13 @@ function propsToTable(props) {
   `;
 }
 
-// ======================
-// 2) MAPA + BASEMAPS
-// ======================
 const map = L.map('map', { zoomControl: true }).setView([-2.425, -44.10], 12);
 
-// OpenStreetMap
 const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
   attribution: '&copy; OpenStreetMap'
 }).addTo(map);
 
-// Satélite (ESRI)
 const esriSat = L.tileLayer(
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   { maxZoom: 19, attribution: 'Tiles &copy; Esri' }
@@ -95,9 +83,6 @@ L.control.layers(
   { collapsed: false }
 ).addTo(map);
 
-// ======================
-// 3) LEGENDA + AJUDA
-// ======================
 const legend = L.control({ position: 'bottomright' });
 legend.onAdd = function () {
   const div = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
@@ -136,35 +121,26 @@ legend.onAdd = function () {
 };
 legend.addTo(map);
 
-// ======================
-// 4) LOGO 1 NO MAPA
-// ======================
 const logoControl = L.control({ position: 'bottomleft' });
 logoControl.onAdd = function () {
   const div = L.DomUtil.create('div', 'map-logo-btn');
   L.DomEvent.disableClickPropagation(div);
   L.DomEvent.disableScrollPropagation(div);
-  
 
   div.innerHTML = `
     <button class="logo-btn" type="button" title="IMESC">
       <img src="./logos/logo1.png" alt="Logo 1" />
     </button>
   `;
-div.querySelector('button').addEventListener('click', () => {
-  window.open('https://imesc.ma.gov.br/estudos-ambientais/', '_blank');
-});
 
-  // Se quiser abrir um link ao clicar:
-  // div.querySelector('button').addEventListener('click', () => window.open('https://...', '_blank'));
+  div.querySelector('button').addEventListener('click', () => {
+    window.open('https://imesc.ma.gov.br/estudos-ambientais/', '_blank');
+  });
 
   return div;
 };
 logoControl.addTo(map);
 
-// ======================
-// 5) ÍCONE BARQUINHO
-// ======================
 const boatIcon = L.divIcon({
   className: 'boat-icon',
   html: `<span style="font-size:22px; line-height:22px;">⛵</span>`,
@@ -176,9 +152,6 @@ const boatIcon = L.divIcon({
 
 const styleBoatShadow = true;
 
-// ======================
-// 6) CORREÇÃO COORDS
-// ======================
 function firstPointCoord(geo) {
   const f = geo?.features?.find(ft => ft?.geometry?.type === 'Point' && Array.isArray(ft.geometry.coordinates));
   return f?.geometry?.coordinates ?? null;
@@ -198,7 +171,6 @@ function normalizeAndFixPortos(raw) {
   if (!test) return { geo: raw, mode: 'no-point-found' };
 
   const x = test[0], y = test[1];
-  console.log('📌 primeira coordenada (bruta) =', test);
 
   if (looksLikeLonLat(x, y)) {
     const geo = structuredClone(raw);
@@ -244,45 +216,74 @@ function normalizeAndFixPortos(raw) {
   return { geo, mode: 'fallback-cut-z-only' };
 }
 
-// ======================
-// 7) GALERIA MÍDIA
-// ======================
-const IMG_EXTS = ['JPG','jpg'];
-const VID_EXTS = ['MP4','mp4'];
+const IMG_EXTS = ['JPG','JPEG','PNG','WEBP','jpg','jpeg','png','webp'];
+const VID_EXTS = ['MP4','WEBM','mp4','webm'];
 
 function buildMediaUrl(dir, filename) {
   return `fotos/${encodeURIComponent(dir)}/${encodeURIComponent(filename)}`;
 }
 
-function imageExists(url) {
-  return new Promise(resolve => {
-    const img = new Image();
-    img.onload = () => resolve(true);
-    img.onerror = () => resolve(false);
-    img.src = url;
-  });
+async function urlExists(url) {
+  try {
+    const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
-function videoExists(url) {
-  return new Promise(resolve => {
-    const v = document.createElement('video');
-    v.preload = 'metadata';
-    v.onloadedmetadata = () => resolve(true);
-    v.onerror = () => resolve(false);
-    v.src = url;
-  });
+function imageExists(url) { return urlExists(url); }
+function videoExists(url) { return urlExists(url); }
+
+function normalizeDirName(s){
+  return String(s ?? '').trim();
 }
 
-async function findMediaForDir(dir, maxPhotos = 30, maxVideos = 10) {
+async function resolveMediaDirByName(nome, maxPrefix = 80){
+  const base = normalizeDirName(nome);
+  const candidates = [base];
+
+  for (let i = 1; i <= maxPrefix; i++){
+    candidates.push(`${i}. ${base}`);
+  }
+
+  for (const dir of candidates){
+    for (const ext of IMG_EXTS){
+      const url = buildMediaUrl(dir, `Foto (1).${ext}`);
+      // eslint-disable-next-line no-await-in-loop
+      if (await imageExists(url)) return dir;
+    }
+  }
+
+  return base;
+}
+
+async function findMediaForDir(dir, maxPhotos = 80, maxVideos = 10) {
   const photos = [];
   const videos = [];
 
+  let missStreak = 0;
+  const MAX_MISS_STREAK = 6;
+
   for (let i = 1; i <= maxPhotos; i++) {
+    let foundThisIndex = false;
+
     for (const ext of IMG_EXTS) {
       const filename = `Foto (${i}).${ext}`;
       const url = buildMediaUrl(dir, filename);
       // eslint-disable-next-line no-await-in-loop
-      if (await imageExists(url)) { photos.push(url); break; }
+      if (await imageExists(url)) {
+        photos.push(url);
+        foundThisIndex = true;
+        break;
+      }
+    }
+
+    if (foundThisIndex) {
+      missStreak = 0;
+    } else {
+      missStreak++;
+      if (photos.length > 0 && missStreak >= MAX_MISS_STREAK) break;
     }
   }
 
@@ -341,14 +342,12 @@ function galleryHtml({ photos, videos }) {
 function wireGalleryInteractions(popupEl) {
   const mainImg = popupEl.querySelector('.gallery .main');
 
-  // miniaturas
   popupEl.querySelectorAll('.thumbs img').forEach(t => {
     t.addEventListener('click', () => {
       if (mainImg) mainImg.src = t.dataset.full;
     });
   });
 
-  // ampliar imagem principal
   if (mainImg) {
     mainImg.style.cursor = 'zoom-in';
     mainImg.addEventListener('click', () => {
@@ -356,7 +355,6 @@ function wireGalleryInteractions(popupEl) {
     });
   }
 
-  // ampliar vídeos (ao clicar)
   popupEl.querySelectorAll('video').forEach(v => {
     v.style.cursor = 'zoom-in';
     v.addEventListener('click', () => {
@@ -370,26 +368,17 @@ function wireGalleryInteractions(popupEl) {
   });
 }
 
-// ======================
-// 8) CARREGAR RAPOSA
-// ======================
 fetch(URLS.raposa)
   .then(r => r.ok ? r.json() : null)
   .then(geo => {
     if (!geo) return;
-
     const layer = L.geoJSON(geo, {
       style: { color: '#444', weight: 2, fillOpacity: 0.05 }
     }).addTo(map);
-
-    // sempre centraliza no município
     try { map.fitBounds(layer.getBounds(), { padding: [20, 20] }); } catch {}
   })
   .catch(() => {});
 
-// ======================
-// 9) CARREGAR PORTOS
-// ======================
 fetch(URLS.portos)
   .then(r => {
     if (!r.ok) throw new Error(`HTTP ${r.status} em ${URLS.portos}`);
@@ -401,13 +390,12 @@ fetch(URLS.portos)
     const { geo, mode } = normalizeAndFixPortos(raw);
     console.log('🛠️ modo de correção =', mode);
 
-    const portosLayer = L.geoJSON(geo, {
+    L.geoJSON(geo, {
       pointToLayer: (_feature, latlng) => L.marker(latlng, { icon: boatIcon }),
 
       onEachFeature: (feature, layer) => {
         const props = feature.properties || {};
         const nome = props.name || 'Sem nome';
-        const midiaDir = props.midia_dir || nome;
 
         layer.bindTooltip(esc(nome), {
           permanent: true,
@@ -416,18 +404,15 @@ fetch(URLS.portos)
           className: 'port-label'
         });
 
-        const placeholder = `
+        layer.bindPopup(`
           <div class="popup-wrap">
             <h3 style="margin:0 0 6px;font-size:14px;">${esc(nome)}</h3>
             ${propsToTable(props)}
             <div class="hint" style="margin-top:10px;">Abra o popup para carregar fotos/vídeos.</div>
           </div>
-        `;
-        layer.bindPopup(placeholder, { maxWidth: 420 });
+        `, { maxWidth: 420 });
 
         layer.on('popupopen', async () => {
-          if (layer.__mediaLoaded) return;
-
           layer.setPopupContent(`
             <div class="popup-wrap">
               <h3 style="margin:0 0 6px;font-size:14px;">${esc(nome)}</h3>
@@ -436,8 +421,9 @@ fetch(URLS.portos)
             </div>
           `);
 
-          const media = await findMediaForDir(midiaDir, 60, 10);
-          layer.__mediaLoaded = true;
+          const baseDir = props.midia_dir || nome;
+          const realDir = await resolveMediaDirByName(baseDir, 80);
+          const media = await findMediaForDir(realDir, 80, 10);
 
           layer.setPopupContent(`
             <div class="popup-wrap">
@@ -455,7 +441,6 @@ fetch(URLS.portos)
       }
     }).addTo(map);
 
-    // sombra no ícone (opcional)
     if (styleBoatShadow) {
       setTimeout(() => {
         document.querySelectorAll('.boat-icon').forEach(el => {
@@ -463,8 +448,6 @@ fetch(URLS.portos)
         });
       }, 0);
     }
-
-    // Não dá fit nos portos para manter sempre centralizado em Raposa
   })
   .catch(err => {
     console.error('❌ Erro ao carregar Portos.geojson:', err);
